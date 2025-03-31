@@ -22,11 +22,11 @@ from image_utils import read_image, image_to_b64s, resize_if_necessary, improve_
 import os
 from huggingface_hub import HfFolder
 
-# Set custom cache locations
-os.environ["HF_HOME"] = "/workspace/huggingface"
-os.environ["TRANSFORMERS_CACHE"] = "/workspace/model_cache"
-os.environ["DIFFUSERS_CACHE"] = "/workspace/model_cache"
-HfFolder.path = "/workspace/huggingface"
+# Set custom cache location
+# os.environ["HF_HOME"] = "/workspace/huggingface"
+# os.environ["TRANSFORMERS_CACHE"] = "/workspace/model_cache"
+# os.environ["DIFFUSERS_CACHE"] = "/workspace/model_cache"
+# HfFolder.path = "/workspace/huggingface"
 
 # Constants and Configuration
 DEFAULT_OUTPUT_DIR = "resource/demo/output"
@@ -36,11 +36,11 @@ DEFAULT_IMAGE_SIZE = (768, 1024)
 
 # Set your custom cache paths
 CUSTOM_MODEL_CACHE = "/workspace/model_cache"  # Use your large storage volume
-CUSTOM_REPO_CACHE = os.path.join(CUSTOM_MODEL_CACHE, "repositories")
+# CUSTOM_REPO_CACHE = os.path.join(CUSTOM_MODEL_CACHE)
 
 # Ensure directories exist
 os.makedirs(CUSTOM_MODEL_CACHE, exist_ok=True)
-os.makedirs(CUSTOM_REPO_CACHE, exist_ok=True)
+# os.makedirs(CUSTOM_REPO_CACHE, exist_ok=True)
 
 
 # Pydantic Models for Request/Response
@@ -237,7 +237,7 @@ async def startup_event():
         repo_path = snapshot_download(
             repo_id=args.resume_path,
             cache_dir=CUSTOM_MODEL_CACHE,
-            local_dir=os.path.join(CUSTOM_REPO_CACHE, "catvton"),
+            local_dir=CUSTOM_MODEL_CACHE,
             local_dir_use_symlinks=False  # Avoid symlinks that might cause space issues
         )
         # pipeline_flux = FluxTryOnPipeline.from_pretrained(args.base_model_path)
