@@ -1,8 +1,6 @@
 import os
-import argparse
 from datetime import datetime
 from typing import Optional, Literal, Union
-from pathlib import Path
 import io
 import base64
 import numpy as np
@@ -21,8 +19,7 @@ from image_utils import read_image, image_to_b64s, resize_if_necessary, improve_
 import os
 from huggingface_hub import HfFolder
 from huggingface_hub import login
-
-
+import runpod
 
 login(token=os.getenv("HF_TOKEN"))
 
@@ -30,7 +27,7 @@ login(token=os.getenv("HF_TOKEN"))
 # os.environ["HF_HOME"] = "/workspace/huggingface"
 # os.environ["TRANSFORMERS_CACHE"] = "/workspace/model_cache"
 # os.environ["DIFFUSERS_CACHE"] = "/workspace/model_cache"
-# HfFolder.path = "/workspace/huggingface"
+HfFolder.path = "/workspace/huggingface"
 
 # Constants and Configuration
 DEFAULT_OUTPUT_DIR = "resource/demo/output"
@@ -60,7 +57,7 @@ class ImageInput(BaseModel):
 class TryOnRequest(BaseModel):
     person_image: Union[ImageInput, UploadFile] = Field(..., description="Person image in URL, base64 or file upload format")
     cloth_image: Union[ImageInput, UploadFile] = Field(..., description="Cloth image in URL, base64 or file upload format")
-    # cloth_mask: Optional[Union[ImageInput, UploadFile]] = Field(None, description="Optional mask image")
+    cloth_mask: Optional[Union[ImageInput, UploadFile]] = Field(None, description="Optional mask image")
     cloth_type: Literal["upper", "lower", "overall"] = Field(
         default="upper", 
         description="Type of clothing to try on"
@@ -94,11 +91,11 @@ class TryOnResponse(BaseModel):
     processing_time: float = Field(..., description="Time taken in seconds")
 
 # Initialize FastAPI app
-app = FastAPI(
-    title="FLUX Try-On API",
-    description="API for virtual try-on using FLUX.1-Fill-dev model with support for multiple image input formats",
-    version="1.0.0"
-)
+# app = FastAPI(
+#     title="FLUX Try-On API",
+#     description="API for virtual try-on using FLUX.1-Fill-dev model with support for multiple image input formats",
+#     version="1.0.0"
+# )
 
 # Define args:
 class Args:
@@ -110,54 +107,6 @@ class Args:
         self.allow_tf32 = True
         self.width = 768
         self.height = 1024
-
-# Command line arguments parser
-# def parse_args():
-#     parser = argparse.ArgumentParser(description="FLUX Try-On API")
-#     parser.add_argument(
-#         "--base_model_path",
-#         type=str,
-#         default="black-forest-labs/FLUX.1-Fill-dev",
-#         help="The path to the base model to use for evaluation."
-#     )
-#     parser.add_argument(
-#         "--resume_path",
-#         type=str,
-#         default="zhengchong/CatVTON",
-#         help="The Path to the checkpoint of trained tryon model."
-#     )
-#     parser.add_argument(
-#         "--output_dir",
-#         type=str,
-#         default=DEFAULT_OUTPUT_DIR,
-#         help="The output directory where the model predictions will be written."
-#     )
-#     parser.add_argument(
-#         "--mixed_precision",
-#         type=str,
-#         default="bf16",
-#         choices=["no", "fp16", "bf16"],
-#         help="Whether to use mixed precision."
-#     )
-#     parser.add_argument(
-#         "--allow_tf32",
-#         action="store_true",
-#         default=True,
-#         help="Whether or not to allow TF32 on Ampere GPUs."
-#     )
-#     parser.add_argument(
-#         "--width",
-#         type=int,
-#         default=768,
-#         help="The width of the input image."
-#     )
-#     parser.add_argument(
-#         "--height",
-#         type=int,
-#         default=1024,
-#         help="The height of the input image."
-#     )
-#     return parser.parse_args()
 
 # Initialize global variables
 args = Args() #parse_args()
@@ -229,8 +178,7 @@ def image_grid(imgs, rows, cols):
     return grid
 
 # APP startup
-@app.on_event("startup")
-async def startup_event():
+def startup_event():
     """Initialize models and resources when the app starts."""
     global pipeline_flux, mask_processor, automasker
     
@@ -277,17 +225,27 @@ async def startup_event():
     except Exception as e:
         raise RuntimeError(f"Failed to initialize models: {str(e)}")
 
-@app.post("/try-on", response_model=TryOnResponse)
-async def virtual_try_on(
-    person_image: Union[ImageInput, UploadFile] = File(...),
-    cloth_image: Union[ImageInput, UploadFile] = File(...),
-    cloth_mask: Optional[Union[ImageInput, UploadFile]] = File(None),
-    cloth_type: str = Form("upper"),
-    num_inference_steps: int = Form(50),
-    guidance_scale: float = Form(30.0),
-    seed: int = Form(42),
-    show_type: str = Form("input & mask & result")
-):
+startup_event()
+
+# @app.post("/try-on", response_model=TryOnResponse)
+async def handler(job):
+    job_input = job['input']
+    person_image: str = job_input.get('person_image',None)
+    cloth_image:  str = job_input.get('cloth_image',None)
+
+    if not person_image or not cloth_image:
+        raise HTTPException(status_code=400, detail="person_image and cloth_image are required")
+    
+    cloth_type:  str = job_input.get('cloth_type',"overall")  # ["upper", "lower", "overall"] 
+
+    if cloth_type not in ["upper", "lower", "overall"]:
+        raise HTTPException(status_code=400, detail="cloth_type must be one of ['upper', 'lower', 'overall']")
+    
+    num_inference_steps: int =job_input.get('num_inference_steps',50)
+    guidance_scale: float = job_input.get('guidance_scale',30.0)
+    seed: int = job_input.get('seed',1250)
+    show_type: str = job_input.get('show_type',"input & mask & result")
+
     """Endpoint for virtual try-on with support for multiple image input formats."""
     start_time = datetime.now()
     global pipeline_flux, mask_processor, automasker
@@ -299,6 +257,7 @@ async def virtual_try_on(
         
         # Process mask if provided
         mask = None
+        cloth_mask   = None
         if cloth_mask:
             mask = await process_image_input(cloth_mask, is_mask=True)
             if len(np.unique(np.array(mask))) == 1:
@@ -369,68 +328,65 @@ async def virtual_try_on(
             processing_time=processing_time
         )
 
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=f"Error during try-on processing: {str(e)}"
         )
 
-@app.post("/try-on-file", response_class=StreamingResponse)
-async def virtual_try_on_file(
-    person_image: Union[ImageInput, UploadFile] = File(...),
-    cloth_image: Union[ImageInput, UploadFile] = File(...),
-    cloth_mask: Optional[Union[ImageInput, UploadFile]] = File(None),
-    cloth_type: str = Form("upper"),
-    num_inference_steps: int = Form(50),
-    guidance_scale: float = Form(30.0),
-    seed: int = Form(42),
-    show_type: str = Form("input & mask & result")
-):
-    """Endpoint that returns the try-on result as a file attachment"""
-    try:
-        # Call the main try-on function
-        result = await virtual_try_on(
-            person_image=person_image,
-            cloth_image=cloth_image,
-            cloth_mask=cloth_mask,
-            cloth_type=cloth_type,
-            num_inference_steps=num_inference_steps,
-            guidance_scale=guidance_scale,
-            seed=seed,
-            show_type=show_type
-        )
+# @app.post("/try-on-file", response_class=StreamingResponse)
+# async def virtual_try_on_file(
+#     person_image: Union[ImageInput, UploadFile] = File(...),
+#     cloth_image: Union[ImageInput, UploadFile] = File(...),
+#     cloth_mask: Optional[Union[ImageInput, UploadFile]] = File(None),
+#     cloth_type: str = Form("upper"),
+#     num_inference_steps: int = Form(50),
+#     guidance_scale: float = Form(30.0),
+#     seed: int = Form(42),
+#     show_type: str = Form("input & mask & result")
+# ):
+#     """Endpoint that returns the try-on result as a file attachment"""
+#     try:
+#         # Call the main try-on function
+#         result = await virtual_try_on(
+#             person_image=person_image,
+#             cloth_image=cloth_image,
+#             cloth_mask=cloth_mask,
+#             cloth_type=cloth_type,
+#             num_inference_steps=num_inference_steps,
+#             guidance_scale=guidance_scale,
+#             seed=seed,
+#             show_type=show_type
+#         )
 
-        # Convert base64 back to bytes
-        image_bytes = base64.b64decode(result.result_image)
+#         # Convert base64 back to bytes
+#         image_bytes = base64.b64decode(result.result_image)
         
-        # Create a streaming response
-        return StreamingResponse(
-            io.BytesIO(image_bytes),
-            media_type="image/jpeg",
-            headers={
-                "Content-Disposition": "attachment; filename=tryon_result.jpg",
-                "X-Processing-Time": str(result.processing_time)
-            }
-        )
+#         # Create a streaming response
+#         return StreamingResponse(
+#             io.BytesIO(image_bytes),
+#             media_type="image/jpeg",
+#             headers={
+#                 "Content-Disposition": "attachment; filename=tryon_result.jpg",
+#                 "X-Processing-Time": str(result.processing_time)
+#             }
+#         )
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error generating file response: {str(e)}"
-        )
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=500,
+#             detail=f"Error generating file response: {str(e)}"
+#         )
 
-@app.get("/health")
-async def health_check():
-    """Health check endpoint."""
-    return JSONResponse(
-        content={"status": "healthy"},
-        status_code=200
-    )
+# @app.get("/health")
+# async def health_check():
+#     """Health check endpoint."""
+#     return JSONResponse(
+#         content={"status": "healthy"},
+#         status_code=200
+#     )
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+# if __name__ == "__main__":
+runpod.serverless.start({"handler": handler})
