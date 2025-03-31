@@ -71,14 +71,14 @@ class FluxTryOnPipeline(
     def from_pretrained(cls, pretrained_model_name_or_path, subfolder=None, **kwargs):
         # Get custom cache dir from kwargs or use default
         CUSTOM_MODEL_CACHE = "/workspace/model_cache"  # Use your large storage volume
-        cache_dir = kwargs.pop("cache_dir", CUSTOM_MODEL_CACHE)
-        offload_folder = kwargs.pop("offload_folder", os.path.join(cache_dir, "offload"))
+        # cache_dir = kwargs.pop("cache_dir", CUSTOM_MODEL_CACHE)
+        # offload_folder = kwargs.pop("offload_folder", os.path.join(cache_dir, "offload"))
         
         transformer = FluxTransformer2DModel.from_pretrained(pretrained_model_name_or_path, subfolder="transformer",
-                                                              cache_dir=cache_dir, offload_folder=offload_folder)
+                                                              cache_dir=CUSTOM_MODEL_CACHE, offload_folder=CUSTOM_MODEL_CACHE)
         transformer.remove_text_layers()
-        vae = AutoencoderKL.from_pretrained(pretrained_model_name_or_path, subfolder="vae",  cache_dir=cache_dir)
-        scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(pretrained_model_name_or_path, subfolder="scheduler",  cache_dir=cache_dir)
+        vae = AutoencoderKL.from_pretrained(pretrained_model_name_or_path, subfolder="vae",  cache_dir=CUSTOM_MODEL_CACHE, offload_folder=CUSTOM_MODEL_CACHE)
+        scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(pretrained_model_name_or_path, subfolder="scheduler",  cache_dir=CUSTOM_MODEL_CACHE, offload_folder=CUSTOM_MODEL_CACHE)
         return FluxTryOnPipeline(vae, scheduler, transformer)
     
     def prepare_mask_latents(
