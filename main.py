@@ -29,7 +29,7 @@ login(token=os.getenv("HF_TOKEN"))
 # os.environ["HF_HOME"] = "/workspace/huggingface"
 # os.environ["TRANSFORMERS_CACHE"] = "/workspace/model_cache"
 # os.environ["DIFFUSERS_CACHE"] = "/workspace/model_cache"
-# HfFolder.path = "/workspace/huggingface"
+HfFolder.path = "/workspace/huggingface"
 
 # Constants and Configuration
 DEFAULT_OUTPUT_DIR = "resource/demo/output"
