@@ -13,7 +13,6 @@ from pydantic import BaseModel, Field
 from diffusers.image_processor import VaeImageProcessor
 from huggingface_hub import snapshot_download
 from PIL import Image
-from huggingface_hub import snapshot_download
 import os
 from model.cloth_masker import AutoMasker, vis_mask
 from model.flux.pipeline_flux_tryon import FluxTryOnPipeline
@@ -21,6 +20,10 @@ from utils import resize_and_crop, resize_and_padding
 from image_utils import read_image, image_to_b64s, resize_if_necessary, improve_resolution
 import os
 from huggingface_hub import HfFolder
+from huggingface_hub import login
+
+
+login(token=os.getenv("HF_TOKEN"))
 
 # Set custom cache location
 # os.environ["HF_HOME"] = "/workspace/huggingface"
