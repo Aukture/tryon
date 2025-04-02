@@ -88,8 +88,11 @@ class TryOnRequest(BaseModel):
         description="Type of output to show"
     )
 
+<<<<<<< HEAD
     
 
+=======
+>>>>>>> a29896872359cc98f90109a858cae075188fa94e
 class TryOnResponse(BaseModel):
     status: str = Field(..., description="Status of the operation")
     message: Optional[str] = Field(None, description="Additional message")
