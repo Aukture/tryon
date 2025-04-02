@@ -139,4 +139,4 @@ RUN ls
 # RUN pip install uvicorn
 # Run the application
 # ENTRYPOINT ["uvicorn", "main:app", "--host" , "0.0.0.0", "--port", "8000"]
-CMD python3.10 -u /runpod_handler.py
+CMD python3.10 -u runpod_handler.py
