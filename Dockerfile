@@ -126,7 +126,7 @@ RUN mkdir -p  -p ${HF_HOME} ${MODEL_CACHE} ${OUTPUT_DIR}
 
 # USER appuser
 WORKDIR /app
-
+g
 # Copy application code
 # COPY --chown=appuser:appuser . .
 
