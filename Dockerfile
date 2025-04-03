@@ -118,15 +118,17 @@ COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Create non-root user
-RUN useradd -m appuser && \
-    mkdir -p ${HF_HOME} ${MODEL_CACHE} ${OUTPUT_DIR} && \
-    chown appuser:appuser ${HF_HOME} ${MODEL_CACHE} ${OUTPUT_DIR}
+# RUN useradd -m appuser && \
+#     mkdir -p ${HF_HOME} ${MODEL_CACHE} ${OUTPUT_DIR} && \
+#     chown appuser:appuser ${HF_HOME} ${MODEL_CACHE} ${OUTPUT_DIR}
 
-USER appuser
+RUN mkdir -p  -p ${HF_HOME} ${MODEL_CACHE} ${OUTPUT_DIR}
+
+# USER appuser
 WORKDIR /app
 
 # Copy application code
-COPY --chown=appuser:appuser . .
+# COPY --chown=appuser:appuser . .
 
 # Expose port
 EXPOSE 8000
