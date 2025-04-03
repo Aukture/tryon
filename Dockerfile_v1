@@ -1,4 +1,5 @@
-FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
+# Stage 1: Builder stage
+FROM nvidia/cuda:12.4.1-devel-ubuntu22.04 as builder
 ENV DEBIAN_FRONTEND=noninteractive
 RUN ln -fs /usr/share/zoneinfo/UTC /etc/localtime
 # Install system dependencies
@@ -18,12 +19,19 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Create virtual environment
-# RUN python3.10 -m venv /opt/venv
-# ENV PATH="/opt/venv/bin:$PATH"
-# RUN source /opt/venv/bin/activate
+RUN python3.10 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN source /opt/venv/bin/activate
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 && \
+    pip install --no-cache-dir -r requirements.txt 
+    #torch==2.4.0 torchvision==0.16.0 --index-url https://download.pytorch.org/whl/cu121
 
 # Stage 2: Runtime stage
-
+FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
@@ -43,9 +51,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy virtual environment from builder
-# # COPY --from=builder /opt/venv /opt/venv
-# # ENV PATH="/opt/venv/bin:$PATH"
-# RUN source /opt/venv/bin/activate 
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN source /opt/venv/bin/activate 
 # Create non-root user
 # RUN useradd -m appuser && \
 #     mkdir -p ${HF_HOME} ${MODEL_CACHE} ${OUTPUT_DIR} && \
@@ -55,17 +63,10 @@ RUN mkdir -p  -p ${HF_HOME} ${MODEL_CACHE} ${OUTPUT_DIR}
 
 # USER appuser
 WORKDIR /app
-
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 && \
-    pip install --no-cache-dir -r requirements.txt 
-    #torch==2.4.0 torchvision==0.16.0 --index-url https://download.pytorch.org/whl/cu121
-    
+g
 # Copy application code
 # COPY --chown=appuser:appuser . .
-COPY . .
+
 # Expose port
 EXPOSE 8000
 RUN pwd
