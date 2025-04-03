@@ -116,7 +116,7 @@ RUN apt-get update && apt-get install -y \
 # Copy virtual environment from builder
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
-
+RUN source /opt/venv/bin/activate 
 # Create non-root user
 # RUN useradd -m appuser && \
 #     mkdir -p ${HF_HOME} ${MODEL_CACHE} ${OUTPUT_DIR} && \
