@@ -17,14 +17,6 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Create virtual environment
-# RUN python3.10 -m venv /opt/venv
-# ENV PATH="/opt/venv/bin:$PATH"
-# RUN source /opt/venv/bin/activate
-
-# Stage 2: Runtime stage
-
-
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     HF_HOME=/workspace/huggingface \
@@ -42,18 +34,9 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy virtual environment from builder
-# # COPY --from=builder /opt/venv /opt/venv
-# # ENV PATH="/opt/venv/bin:$PATH"
-# RUN source /opt/venv/bin/activate 
-# Create non-root user
-# RUN useradd -m appuser && \
-#     mkdir -p ${HF_HOME} ${MODEL_CACHE} ${OUTPUT_DIR} && \
-#     chown appuser:appuser ${HF_HOME} ${MODEL_CACHE} ${OUTPUT_DIR}
 
 RUN mkdir -p  -p ${HF_HOME} ${MODEL_CACHE} ${OUTPUT_DIR}
 
-# USER appuser
 WORKDIR /app
 
 # Install Python dependencies
@@ -62,7 +45,7 @@ RUN pip install --upgrade pip && \
     pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 && \
     pip install --no-cache-dir -r requirements.txt 
     #torch==2.4.0 torchvision==0.16.0 --index-url https://download.pytorch.org/whl/cu121
-    
+
 # Copy application code
 # COPY --chown=appuser:appuser . .
 COPY . .
@@ -70,11 +53,5 @@ COPY . .
 EXPOSE 8000
 RUN pwd
 RUN ls
-# Health check
-# HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-#     CMD curl -f http://localhost:8000/health || exit 1
-
-# RUN pip install uvicorn
-# Run the application
-# ENTRYPOINT ["uvicorn", "main:app", "--host" , "0.0.0.0", "--port", "8000"]
+RUN pip show transformers
 CMD python3.10 -u runpod_handler.py
