@@ -338,7 +338,7 @@ async def handler(job):
             message="Try-on completed successfully",
             result_image=result_base64,
             processing_time=processing_time
-        )
+        ).model_dump()
 
     except Exception as e:
         raise HTTPException(
