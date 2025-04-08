@@ -43,6 +43,16 @@ CUSTOM_MODEL_CACHE = "/workspace/model_cache"  # Use your large storage volume
 os.makedirs(CUSTOM_MODEL_CACHE, exist_ok=True)
 # os.makedirs(CUSTOM_REPO_CACHE, exist_ok=True)
 
+'''
+{
+  "input": {
+    "person_image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR-1tcZ9AWzzwu277kA0NAaGBdohRFmt-r59Q&s",
+    "cloth_image": "https://i.pinimg.com/originals/de/f3/43/def3435f04969555a47fe2e60e669365.jpg",
+    "cloth_type": "upper"
+  }
+}
+
+'''
 
 # Pydantic Models for Request/Response
 class ImageInput(BaseModel):
@@ -115,11 +125,13 @@ mask_processor = None
 automasker = None
 
 # Helper functions
-async def process_image_input(image_input: Union[ImageInput, UploadFile], is_mask: bool = False) -> Image.Image:
+async def process_image_input(image_input:Union[str, ImageInput, UploadFile], is_mask: bool = False) -> Image.Image: 
     """Process image input from various formats (URL, base64, or file upload)"""
     try:
         pil_image = Image.Image()
-        if isinstance(image_input, UploadFile):
+        if isinstance(image_input, str):
+            pil_image = read_image(image_input, isCV2=False)
+        elif isinstance(image_input, UploadFile):
             # Handle direct file upload
             validate_image_file(image_input)
             image_bytes = await image_input.read()
@@ -230,8 +242,8 @@ startup_event()
 # @app.post("/try-on", response_model=TryOnResponse)
 async def handler(job):
     job_input = job['input']
-    person_image: str = job_input.get('person_image',None)
-    cloth_image:  str = job_input.get('cloth_image',None)
+    person_image = job_input.get('person_image',None)
+    cloth_image = job_input.get('cloth_image',None)
 
     if not person_image or not cloth_image:
         raise HTTPException(status_code=400, detail="person_image and cloth_image are required")
