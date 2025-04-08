@@ -28,14 +28,13 @@ ENV PYTHONUNBUFFERED=1 \
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
-    python3.10 \
     python3-opencv \
     libgl1-mesa-glx \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 
-RUN mkdir -p  -p ${HF_HOME} ${MODEL_CACHE} ${OUTPUT_DIR}
+RUN mkdir -p  ${HF_HOME} ${MODEL_CACHE} ${OUTPUT_DIR}
 
 WORKDIR /app
 

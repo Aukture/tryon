@@ -182,48 +182,48 @@ def startup_event():
     """Initialize models and resources when the app starts."""
     global pipeline_flux, mask_processor, automasker
     
-    try:
-        # Load models
-        # repo_path = snapshot_download(repo_id=args.resume_path)
-        # Download with custom cache
-        repo_path = snapshot_download(
-            repo_id=args.resume_path,
-            cache_dir=CUSTOM_MODEL_CACHE,
-            local_dir=CUSTOM_MODEL_CACHE,
-            local_dir_use_symlinks=False  # Avoid symlinks that might cause space issues
-        )
-        # pipeline_flux = FluxTryOnPipeline.from_pretrained(args.base_model_path)
-        # Load pipeline with custom paths
-        pipeline_flux = FluxTryOnPipeline.from_pretrained(
-            args.base_model_path,
-            cache_dir=CUSTOM_MODEL_CACHE,
-            subfolder=None,
-            local_files_only=False
-        )
-        pipeline_flux.load_lora_weights(
-            os.path.join(repo_path, "flux-lora"), 
-            weight_name='pytorch_lora_weights.safetensors'
-        )
-        pipeline_flux.to("cuda", torch.bfloat16)
+    # try:
+    # Load models
+    # repo_path = snapshot_download(repo_id=args.resume_path)
+    # Download with custom cache
+    repo_path = snapshot_download(
+        repo_id=args.resume_path,
+        cache_dir=CUSTOM_MODEL_CACHE,
+        local_dir=CUSTOM_MODEL_CACHE,
+        local_dir_use_symlinks=False  # Avoid symlinks that might cause space issues
+    )
+    # pipeline_flux = FluxTryOnPipeline.from_pretrained(args.base_model_path)
+    # Load pipeline with custom paths
+    pipeline_flux = FluxTryOnPipeline.from_pretrained(
+        args.base_model_path,
+        cache_dir=CUSTOM_MODEL_CACHE,
+        subfolder=None,
+        local_files_only=False
+    )
+    pipeline_flux.load_lora_weights(
+        os.path.join(repo_path, "flux-lora"), 
+        weight_name='pytorch_lora_weights.safetensors'
+    )
+    pipeline_flux.to("cuda", torch.bfloat16)
 
-        # Initialize AutoMasker
-        mask_processor = VaeImageProcessor(
-            vae_scale_factor=8, 
-            do_normalize=False, 
-            do_binarize=True, 
-            do_convert_grayscale=True
-        )
-        automasker = AutoMasker(
-            densepose_ckpt=os.path.join(repo_path, "DensePose"),
-            schp_ckpt=os.path.join(repo_path, "SCHP"),
-            device='cuda'
-        )
-        
-        # Create output directory if it doesn't exist
-        os.makedirs(args.output_dir, exist_ok=True)
-        
-    except Exception as e:
-        raise RuntimeError(f"Failed to initialize models: {str(e)}")
+    # Initialize AutoMasker
+    mask_processor = VaeImageProcessor(
+        vae_scale_factor=8, 
+        do_normalize=False, 
+        do_binarize=True, 
+        do_convert_grayscale=True
+    )
+    automasker = AutoMasker(
+        densepose_ckpt=os.path.join(repo_path, "DensePose"),
+        schp_ckpt=os.path.join(repo_path, "SCHP"),
+        device='cuda'
+    )
+    
+    # Create output directory if it doesn't exist
+    os.makedirs(args.output_dir, exist_ok=True)
+    
+    # except Exception as e:
+    #     raise RuntimeError(f"Failed to initialize models: {str(e)}")
 
 startup_event()
 

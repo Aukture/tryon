@@ -80,10 +80,10 @@ class FluxTryOnPipeline(
         # offload_folder = kwargs.pop("offload_folder", os.path.join(cache_dir, "offload"))
         
         transformer = FluxTransformer2DModel.from_pretrained(pretrained_model_name_or_path, subfolder="transformer",
-                                                              cache_dir=CUSTOM_MODEL_CACHE, offload_folder=CUSTOM_MODEL_CACHE)
+                                                              cache_dir=CUSTOM_MODEL_CACHE, offload_folder=CUSTOM_MODEL_CACHE, resume_download=True)
         transformer.remove_text_layers()
-        vae = AutoencoderKL.from_pretrained(pretrained_model_name_or_path, subfolder="vae",  cache_dir=CUSTOM_MODEL_CACHE, offload_folder=CUSTOM_MODEL_CACHE)
-        scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(pretrained_model_name_or_path, subfolder="scheduler",  cache_dir=CUSTOM_MODEL_CACHE, offload_folder=CUSTOM_MODEL_CACHE)
+        vae = AutoencoderKL.from_pretrained(pretrained_model_name_or_path, subfolder="vae",  cache_dir=CUSTOM_MODEL_CACHE, offload_folder=CUSTOM_MODEL_CACHE,resume_download=True)
+        scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(pretrained_model_name_or_path, subfolder="scheduler",  cache_dir=CUSTOM_MODEL_CACHE, offload_folder=CUSTOM_MODEL_CACHE, resume_download=True)
         return FluxTryOnPipeline(vae, scheduler, transformer)
     
     def prepare_mask_latents(
